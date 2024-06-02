@@ -23,6 +23,7 @@
 #include "recomp_input.h"
 #include "recomp_config.h"
 #include "recomp_game.h"
+#include "recomp_sound.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -51,6 +52,11 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx() {
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+
+#if defined(__linux__)
+    SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+#endif
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) > 0) {
         exit_error("Failed to initialize SDL2: %s\n", SDL_GetError());
     }
@@ -133,6 +139,10 @@ ultramodern::WindowHandle create_window(ultramodern::gfx_callbacks_t::gfx_data_t
 #elif defined(__ANDROID__)
     static_assert(false && "Unimplemented");
 #elif defined(__linux__)
+    if (wmInfo.subsystem != SDL_SYSWM_X11) {
+        exit_error("Unsupported SDL2 video driver \"%s\". Only X11 is supported on Linux.\n", SDL_GetCurrentVideoDriver());
+    }
+
     return ultramodern::WindowHandle{ wmInfo.info.x11.display, wmInfo.info.x11.window };
 #else
     static_assert(false && "Unimplemented");
@@ -182,9 +192,10 @@ void queue_samples(int16_t* audio_data, size_t sample_count) {
 
     // Convert the audio from 16-bit values to floats and swap the audio channels into the
     // swap buffer to correct for the address xor caused by endianness handling.
+    float cur_main_volume = recomp::get_main_volume() / 100.0f; // Get the current main volume, normalized to 0.0-1.0.
     for (size_t i = 0; i < sample_count; i += input_channels) {
-        swap_buffer[i + 0 + duplicated_input_frames * input_channels] = audio_data[i + 1] * (0.5f / 32768.0f);
-        swap_buffer[i + 1 + duplicated_input_frames * input_channels] = audio_data[i + 0] * (0.5f / 32768.0f);
+        swap_buffer[i + 0 + duplicated_input_frames * input_channels] = audio_data[i + 1] * (0.5f / 32768.0f) * cur_main_volume;
+        swap_buffer[i + 1 + duplicated_input_frames * input_channels] = audio_data[i + 0] * (0.5f / 32768.0f) * cur_main_volume;
     }
     
     // TODO handle cases where a chunk is smaller than the duplicated frame count.
@@ -312,6 +323,10 @@ int main(int argc, char** argv) {
     SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), FALSE, &cfi);
 #endif
 
+#ifdef _WIN32
+    // Force wasapi on Windows, as there seems to be some issue with sample queueing with directsound currently.
+    SDL_setenv("SDL_AUDIODRIVER", "wasapi", true);
+#endif
     //printf("Current dir: %ls\n", std::filesystem::current_path().c_str());
 
     // Initialize SDL audio and set the output frequency.

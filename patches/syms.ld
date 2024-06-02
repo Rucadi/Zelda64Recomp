@@ -14,6 +14,7 @@ D_808DE5B0 = 0x808DE5B0;
 sHappyMaskSalesmanAnimationInfo = 0x80AD22C0;
 D_808890F0 = 0x808890F0;
 D_8088911C = 0x8088911C;
+D_809EE4D0 = 0x809EE4D0;
 
 /* Dummy addresses that get recompiled into function calls */
 recomp_puts = 0x8F000000;
@@ -50,3 +51,12 @@ recomp_get_mouse_deltas = 0x8F000080;
 bcmp_recomp = 0x8F000084;
 osGetTime_recomp = 0x8F000088;
 recomp_autosave_enabled = 0x8F00008C;
+recomp_load_overlays = 0x8F000090;
+osInvalICache_recomp = 0x8F000094;
+recomp_analog_cam_enabled = 0x8F000098;
+recomp_get_camera_inputs = 0x8F00009C;
+recomp_set_right_analog_suppressed = 0x8F0000A0;
+recomp_get_inverted_axes = 0x8F0000A4;
+recomp_high_precision_fb_enabled = 0x8F0000A8;
+recomp_get_resolution_scale = 0x8F0000AC;
+recomp_get_analog_inverted_axes = 0x8F0000B0;

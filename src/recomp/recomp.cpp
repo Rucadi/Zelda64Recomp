@@ -11,12 +11,15 @@
 #include <fstream>
 #include <iostream>
 #include "recomp.h"
+#include "recomp_overlays.h"
 #include "recomp_game.h"
 #include "recomp_config.h"
 #include "xxHash/xxh3.h"
 #include "../ultramodern/ultramodern.hpp"
 #include "../../RecompiledPatches/patches_bin.h"
+#ifdef HAS_MM_SHADER_CACHE
 #include "mm_shader_cache.h"
+#endif
 
 #ifdef _MSC_VER
 inline uint32_t byteswap(uint32_t val) {
@@ -301,9 +304,6 @@ void run_thread_function(uint8_t* rdram, uint64_t addr, uint64_t sp, uint64_t ar
 extern "C" void recomp_entrypoint(uint8_t * rdram, recomp_context * ctx);
 gpr get_entrypoint_address();
 const char* get_rom_name();
-void init_overlays();
-extern "C" void load_overlays(uint32_t rom, int32_t ram_addr, uint32_t size);
-extern "C" void unload_overlays(int32_t ram_addr, uint32_t size);
 
 void read_patch_data(uint8_t* rdram, gpr patch_data_address) {
     for (size_t i = 0; i < sizeof(mm_patches_bin); i++) {
@@ -413,7 +413,11 @@ void recomp::start(ultramodern::WindowHandle window_handle, const ultramodern::a
                 if (!recomp::load_stored_rom(recomp::Game::MM)) {
                     recomp::message_box("Error opening stored ROM! Please restart this program.");
                 }
+
+                #ifdef HAS_MM_SHADER_CACHE
                 ultramodern::load_shader_cache({mm_shader_cache_bytes, sizeof(mm_shader_cache_bytes)});
+                #endif
+
                 init(rdram, &context);
                 try {
                     recomp_entrypoint(rdram, &context);
